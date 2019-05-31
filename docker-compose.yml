@@ -1,0 +1,112 @@
+version: '2.3'
+services:
+    nginx:
+        build:
+            context: ./
+            dockerfile: ./docker/nginx/Dockerfile
+        image: nginx-sample:latest
+        container_name: nginx
+        logging:
+            driver: json-file
+            options:
+                max-size: "1m"
+                max-file: "4"
+        ports:
+            - 80:80
+            - 443:443
+        depends_on:
+            - php
+        networks:
+            sample:
+                ipv4_address: 172.19.0.2
+    php:
+        build:
+            context: ./
+            dockerfile: ./docker/php/Dockerfile
+        image: php-sample:latest
+        container_name: php
+        volumes:
+            - /var/log/project/logs:/src/project/logs
+        logging:
+            driver: json-file
+            options:
+                max-size: "1m"
+                max-file: "4"
+        networks:
+            sample:
+                ipv4_address: 172.19.0.3
+    mariadb:
+        build:
+            context: ./
+            dockerfile: ./docker/mariadb/Dockerfile
+        image: maria-sample:latest
+        container_name: mariadb
+        logging:
+            driver: json-file
+            options:
+                max-size: "1m"
+                max-file: "4"
+        volumes:
+            - mariadata:/var/lib/mysql
+        environment:
+            - MYSQL_ROOT_PASSWORD=123456
+        networks:
+            sanjagh:
+                ipv4_address: 172.19.0.4
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin:4.8.3
+        container_name: phpmyadmin
+        logging:
+            driver: json-file
+            options:
+                max-size: "1m"
+                max-file: "4"
+        environment:
+            - PMA_HOST=mariadb
+        networks:
+            sample:
+                ipv4_address: 172.19.0.5
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:6.5.2
+        container_name: elasticsearch
+        logging:
+            driver: json-file
+            options:
+                max-size: "1m"
+                max-file: "4"
+        volumes:
+        - elasticdata:/usr/share/elasticsearch/data
+        networks:
+            sample:
+                ipv4_address: 172.19.0.6
+    kibana:
+        image: docker.elastic.co/kibana/kibana:6.5.2
+        container_name: kibana
+        logging:
+            driver: json-file
+            options:
+                max-size: "1m"
+                max-file: "4"
+        networks:
+            sample:
+                ipv4_address: 172.19.0.7
+    logstash:
+        image: docker.elastic.co/logstash/logstash:6.5.2
+        container_name: logstash
+        volumes:
+            - ./docker/logstash/pipeline:/usr/share/logstash/pipeline
+            - /var/log/logstash/:/home/logs
+        networks:
+            sample:
+                ipv4_address: 172.19.0.8
+volumes:
+    mariadata:
+    elasticdata:
+networks:
+  sample:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      -
+        subnet: 172.19.0.0/20
